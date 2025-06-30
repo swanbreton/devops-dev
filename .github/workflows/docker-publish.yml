@@ -1,4 +1,4 @@
-name: Build, Push and Deploy to Scaleway
+name: Build, Push and Deploy
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       - name: Log in to Scaleway Container Registry
         uses: docker/login-action@v3
         with:
-          registry: rg.fr-par.scw.cloud
+          registry: rg.${{ secrets.SCW_REGION }}.scw.cloud
           username: ${{ secrets.SCW_ACCESS_KEY }}
           password: ${{ secrets.SCW_SECRET_KEY }}
 
@@ -24,39 +24,42 @@ jobs:
         with:
           context: ./back
           push: true
-          tags: rg.fr-par.scw.cloud/breton-swan/back:latest
+          tags: rg.${{ secrets.SCW_REGION }}.scw.cloud/${{ secrets.SCW_NAMESPACE }}/back:latest
 
       - name: Build and push front image
         uses: docker/build-push-action@v5
         with:
           context: ./front
           push: true
-          tags: rg.fr-par.scw.cloud/breton-swan/front:latest
+          tags: rg.${{ secrets.SCW_REGION }}.scw.cloud/${{ secrets.SCW_NAMESPACE }}/front:latest
 
       - name: Install Scaleway CLI
         run: |
-          curl -sL https://github.com/scaleway/scaleway-cli/releases/latest/download/scw-linux-amd64 > scw
-          chmod +x scw
-          sudo mv scw /usr/local/bin/scw
+          curl -sSL https://install.scaleway.com | bash
+          echo "$HOME/bin" >> $GITHUB_PATH
 
-      - name: Configure Scaleway CLI
+      - name: Deploy containers to Scaleway
+        env:
+          SCW_ACCESS_KEY: ${{ secrets.SCW_ACCESS_KEY }}
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
+          SCW_ORG_ID: ${{ secrets.SCW_ORG_ID }}
+          SCW_REGION: ${{ secrets.SCW_REGION }}
         run: |
-          scw config set access-key=${{ secrets.SCW_ACCESS_KEY }}
-          scw config set secret-key=${{ secrets.SCW_SECRET_KEY }}
-          scw config set project-id=${{ secrets.SCW_PROJECT_ID }}
-          scw config set region=fr-par
+          export PATH=$HOME/bin:$PATH
+          scw config set access-key "$SCW_ACCESS_KEY"
+          scw config set secret-key "$SCW_SECRET_KEY"
+          scw config set project-id "$SCW_PROJECT_ID"
+          scw config set organization-id "$SCW_ORG_ID"
+          scw config set region "$SCW_REGION"
 
-      - name: Deploy back container
-        run: |
-          scw container container deploy back --name back \
-            --namespace-id=${{ secrets.SCW_NAMESPACE_ID }} \
-            --image=rg.fr-par.scw.cloud/breton-swan/back:latest \
-            --port=3000
+          # Déployer le back
+          scw container container create name=back namespace-id=${{ secrets.SCW_NAMESPACE_ID }} image=rg.${SCW_REGION}.scw.cloud/${{ secrets.SCW_NAMESPACE }}/back:latest port=3000 || true
+          scw container container deploy name=back
 
-      - name: Deploy front container
-        run: |
-          scw container container deploy front --name front \
-            --namespace-id=${{ secrets.SCW_NAMESPACE_ID }} \
-            --image=rg.fr-par.scw.cloud/breton-swan/front:latest \
-            --port=80 \
-            --env="BACK_URL=https://<ton-back-end-url>"
+          # Récupérer l'endpoint back
+          BACK_URL=$(scw container container get name=back -o json | jq -r '.status.url')
+
+          # Déployer le front avec la variable d'env BACK_URL
+          scw container container create name=front namespace-id=${{ secrets.SCW_NAMESPACE_ID }} image=rg.${SCW_REGION}.scw.cloud/${{ secrets.SCW_NAMESPACE }}/front:latest port=80 env-vars.0.key=BACK_URL env-vars.0.value=$BACK_URL || true
+          scw container container deploy name=front
