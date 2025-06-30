@@ -19,10 +19,10 @@ jobs:
 
     - name: Build and Push Front image
       run: |
-        docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/front:latest ./front
+        docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/front:latest ./devops-dev/front
         docker push rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
 
     - name: Build and Push Back image
       run: |
-        docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/back:latest ./back
+        docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/back:latest ./devops-dev/back
         docker push rg.fr-par.scw.cloud/namespace-breton-swan/back:latest
