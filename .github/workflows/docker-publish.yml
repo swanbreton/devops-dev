@@ -39,7 +39,7 @@ jobs:
               image=rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
 
       - name: Deploy Back Container
-        uses: scaleway/action-scw@v0.5.0
+        uses: scaleway/action-scw@v0.4.0
         with:
           access_key: ${{ secrets.SCW_ACCESS_KEY }}
           secret_key: ${{ secrets.SCW_SECRET_KEY }}
