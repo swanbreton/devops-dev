@@ -1,11 +1,11 @@
-name: Build, Push & Deploy Docker Images to Scaleway
+name: Build, Push & Deploy to Scaleway
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
 
     env:
@@ -13,7 +13,7 @@ jobs:
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
       SCW_DEFAULT_REGION: fr-par
-      NAMESPACE: namespace-breton-swan  # Remplace par ton namespace exact
+      NAMESPACE: breton-swan
 
     steps:
       - name: Checkout repository
@@ -42,26 +42,17 @@ jobs:
 
       - name: Install Scaleway CLI
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl gnupg2 software-properties-common jq
-          curl -fsSL https://packages.scaleway.com/scaleway.key | sudo tee /etc/apt/trusted.gpg.d/scaleway.asc
-          echo "deb https://packages.scaleway.com/debian stable main" | sudo tee /etc/apt/sources.list.d/scaleway.list
-          sudo apt-get update
-          sudo apt-get install -y scaleway-cli
-
-      - name: Configure Scaleway CLI
-        run: |
-          scw config set project-id ${{ env.SCW_PROJECT_ID }}
-          scw config set access-key ${{ env.SCW_ACCESS_KEY }}
-          scw config set secret-key ${{ env.SCW_SECRET_KEY }}
-          scw config set default-region ${{ env.SCW_DEFAULT_REGION }}
+          curl -sSL https://install.scaleway.com | bash
+          echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Create & Deploy back container
         run: |
+          scw config init name=gh-runner project-id=$SCW_PROJECT_ID access-key=$SCW_ACCESS_KEY secret-key=$SCW_SECRET_KEY
           scw container container create name=back image=rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud/${{ env.NAMESPACE }}/back:latest port=3000 || echo "Back container already exists"
           scw container container list name=back -o json | jq -r '.[0].id' | xargs -I {} scw container container deploy {}
 
       - name: Create & Deploy front container
         run: |
+          scw config init name=gh-runner project-id=$SCW_PROJECT_ID access-key=$SCW_ACCESS_KEY secret-key=$SCW_SECRET_KEY
           scw container container create name=front image=rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud/${{ env.NAMESPACE }}/front:latest port=80 env="VITE_API_URL=https://back.${{ env.SCW_DEFAULT_REGION }}.scalewayapp.com" || echo "Front container already exists"
           scw container container list name=front -o json | jq -r '.[0].id' | xargs -I {} scw container container deploy {}
