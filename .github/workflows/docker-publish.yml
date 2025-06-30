@@ -1,32 +1,48 @@
-name: Publish Docker image to Scaleway
+name: Build and Deploy to Scaleway
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Log in to Scaleway Container Registry
-      env:
-        SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-      run: echo "${SCW_SECRET_KEY}" | docker login rg.fr-par.scw.cloud -u _token --password-stdin
+      - name: Log in to Scaleway Container Registry
+        env:
+          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
+        run: echo "${SCW_SECRET_KEY}" | docker login rg.fr-par.scw.cloud -u _token --password-stdin
 
-    - name: Build and Push Front image
-      env:
-        SCW_NAMESPACE: ${{ secrets.SCW_NAMESPACE }}
-      run: |
-        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest ./front
-        docker push rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest
+      - name: Build and Push Front image
+        run: |
+          docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/front:latest ./front
+          docker push rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
 
-    - name: Build and Push Back image
-      env:
-        SCW_NAMESPACE: ${{ secrets.SCW_NAMESPACE }}
-      run: |
-        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest ./back
-        docker push rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest
+      - name: Build and Push Back image
+        run: |
+          docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/back:latest ./back
+          docker push rg.fr-par.scw.cloud/namespace-breton-swan/back:latest
+
+      - name: Deploy Front Container
+        uses: scaleway/action-scw@v0.5.0
+        with:
+          access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          project_id: ${{ secrets.SCW_PROJECT_ID }}
+          region: fr-par
+          command: |
+            scw container container deploy front \
+              image=rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
+
+      - name: Deploy Back Container
+        uses: scaleway/action-scw@v0.5.0
+        with:
+          access_key: ${{ secrets.SCW_ACCESS_KEY }}
+          secret_key: ${{ secrets.SCW_SECRET_KEY }}
+          project_id: ${{ secrets.SCW_PROJECT_ID }}
+          region: fr-par
+          command: |
