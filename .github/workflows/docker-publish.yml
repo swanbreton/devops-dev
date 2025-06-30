@@ -21,13 +21,12 @@ jobs:
       env:
         SCW_NAMESPACE: ${{ secrets.SCW_NAMESPACE }}
       run: |
-        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest ./front
+        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest ./devops-dev/front
         docker push rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest
 
     - name: Build and Push Back image
       env:
         SCW_NAMESPACE: ${{ secrets.SCW_NAMESPACE }}
       run: |
-        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest ./back
+        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest ./devops-dev/back
         docker push rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest
-
