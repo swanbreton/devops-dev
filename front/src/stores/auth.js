@@ -5,10 +5,19 @@ import axios from 'axios'
 axios.defaults.baseURL = import.meta.env.VITE_API_URL
 
 export const useAuthStore = defineStore('auth', {
-  state: () => ({
-    token: localStorage.getItem('token'),
-    user: JSON.parse(localStorage.getItem('user'))
-  }),
+state: () => ({
+  token: localStorage.getItem('token'),
+  user: (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user'))
+    } catch (err) {
+      console.warn('⚠️ Erreur JSON.parse(user)', err)
+      localStorage.removeItem('user')
+      return null
+    }
+  })()
+}),
+
   
   getters: {
     isAuthenticated: (state) => !!state.token,

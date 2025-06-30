@@ -1,11 +1,11 @@
-name: Build and Deploy to Scaleway
+name: Build and Push Docker Images
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -13,36 +13,22 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Log in to Scaleway Container Registry
-        env:
-          SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
-        run: echo "${SCW_SECRET_KEY}" | docker login rg.fr-par.scw.cloud -u _token --password-stdin
-
-      - name: Build and Push Front image
-        run: |
-          docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/front:latest ./front
-          docker push rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
-
-      - name: Build and Push Back image
-        run: |
-          docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/back:latest ./back
-          docker push rg.fr-par.scw.cloud/namespace-breton-swan/back:latest
-
-      - name: Deploy Front Container
-        uses: scaleway/action-scw@v0.5.0
+        uses: docker/login-action@v3
         with:
-          access_key: ${{ secrets.SCW_ACCESS_KEY }}
-          secret_key: ${{ secrets.SCW_SECRET_KEY }}
-          project_id: ${{ secrets.SCW_PROJECT_ID }}
-          region: fr-par
-          command: |
-            scw container container deploy front \
-              image=rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
+          registry: rg.fr-par.scw.cloud
+          username: ${{ secrets.SCW_ACCESS_KEY }}
+          password: ${{ secrets.SCW_SECRET_KEY }}
 
-      - name: Deploy Back Container
-        uses: scaleway/action-scw@main
+      - name: Build and push back image
+        uses: docker/build-push-action@v5
         with:
-          access_key: ${{ secrets.SCW_ACCESS_KEY }}
-          secret_key: ${{ secrets.SCW_SECRET_KEY }}
-          project_id: ${{ secrets.SCW_PROJECT_ID }}
-          region: fr-par
-          command: |
+          context: ./back
+          push: true
+          tags: rg.fr-par.scw.cloud/namespace-breton-swan/back:latest
+
+      - name: Build and push front image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./front
+          push: true
+          tags: rg.fr-par.scw.cloud/namespace-breton-swan/front:latest

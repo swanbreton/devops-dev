@@ -21,9 +21,9 @@ app.use(OpenApiValidator.middleware({
 }))
 
 // API routers
-app.use('/users', usersRouter) // When a request is made to /users, the usersRouter will handle it
-app.use('/orders', ordersRouter)
-app.use('/items', itemsRouter)
+app.use('/api/users', usersRouter) // When a request is made to /users, the usersRouter will handle it
+app.use('/api/orders', ordersRouter)
+app.use('/api/items', itemsRouter)
 
 app.use((err, req, res, next) => {
     // format error

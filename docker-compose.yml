@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  front:
+    build: ./front
+    image: rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
+    ports:
+      - "3000:3000"
+
+  back:
+    build: ./back
+    image: rg.fr-par.scw.cloud/namespace-breton-swan/back:latest
+    ports:
+      - "3001:3001"
