@@ -1,12 +1,11 @@
-name: Build, Push & Deploy to Scaleway
+name: Build, Push & Deploy Docker Images to Scaleway
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-push-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     env:
@@ -14,7 +13,7 @@ jobs:
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
       SCW_DEFAULT_REGION: fr-par
-      NAMESPACE: breton-swan    # Remplace par ton namespace exact sur Scaleway
+      NAMESPACE: namespace-breton-swan  # Remplace par ton namespace exact
 
     steps:
       - name: Checkout repository
@@ -44,7 +43,7 @@ jobs:
       - name: Install Scaleway CLI
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl gnupg2 software-properties-common
+          sudo apt-get install -y curl gnupg2 software-properties-common jq
           curl -fsSL https://packages.scaleway.com/scaleway.key | sudo tee /etc/apt/trusted.gpg.d/scaleway.asc
           echo "deb https://packages.scaleway.com/debian stable main" | sudo tee /etc/apt/sources.list.d/scaleway.list
           sudo apt-get update
