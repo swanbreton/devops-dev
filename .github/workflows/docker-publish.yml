@@ -2,7 +2,8 @@ name: Build, Push & Deploy to Scaleway
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build-push-deploy:
@@ -13,7 +14,7 @@ jobs:
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
       SCW_DEFAULT_REGION: fr-par
-      NAMESPACE: namespace-breton-swan
+      NAMESPACE: breton-swan
 
     steps:
       - name: Checkout repository
@@ -22,7 +23,7 @@ jobs:
       - name: Log in to Scaleway Container Registry
         uses: docker/login-action@v3
         with:
-          registry: rg.fr-par.scw.cloud
+          registry: rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud
           username: ${{ env.SCW_ACCESS_KEY }}
           password: ${{ env.SCW_SECRET_KEY }}
 
@@ -31,36 +32,37 @@ jobs:
         with:
           context: ./back
           push: true
-          tags: rg.fr-par.scw.cloud/${{ env.NAMESPACE }}/back:latest
+          tags: rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud/${{ env.NAMESPACE }}/back:latest
 
       - name: Build and push front image
         uses: docker/build-push-action@v5
         with:
           context: ./front
           push: true
-          tags: rg.fr-par.scw.cloud/${{ env.NAMESPACE }}/front:latest
+          tags: rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud/${{ env.NAMESPACE }}/front:latest
 
       - name: Install Scaleway CLI
         run: |
-          curl -sSL https://install.scaleway.com | bash
-          echo "$HOME/bin" >> $GITHUB_PATH
-          source $GITHUB_PATH
-        shell: bash
-
+          sudo apt update
+          sudo apt install -y curl gnupg2 software-properties-common
+          curl -fsSL https://packages.scaleway.com/scaleway.key | sudo tee /etc/apt/trusted.gpg.d/scaleway.asc
+          echo "deb https://packages.scaleway.com/debian stable main" | sudo tee /etc/apt/sources.list.d/scaleway.list
+          sudo apt update
+          sudo apt install -y scaleway-cli
 
       - name: Configure Scaleway CLI
         run: |
-          scw config set project-id $SCW_PROJECT_ID
-          scw config set access-key $SCW_ACCESS_KEY
-          scw config set secret-key $SCW_SECRET_KEY
-          scw config set default-region $SCW_DEFAULT_REGION
+          scw config set project-id ${{ env.SCW_PROJECT_ID }}
+          scw config set access-key ${{ env.SCW_ACCESS_KEY }}
+          scw config set secret-key ${{ env.SCW_SECRET_KEY }}
+          scw config set default-region ${{ env.SCW_DEFAULT_REGION }}
 
-      - name: Deploy back container
+      - name: Create & Deploy back container
         run: |
-          scw container container create name=back image=rg.${SCW_DEFAULT_REGION}.scw.cloud/${NAMESPACE}/back:latest port=3000 || echo "Back container already exists"
+          scw container container create name=back image=rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud/${{ env.NAMESPACE }}/back:latest port=3000 || echo "Back container already exists"
           scw container container list name=back -o json | jq -r '.[0].id' | xargs -I {} scw container container deploy {}
 
-      - name: Deploy front container
+      - name: Create & Deploy front container
         run: |
-          scw container container create name=front image=rg.${SCW_DEFAULT_REGION}.scw.cloud/${NAMESPACE}/front:latest port=80 env="VITE_API_URL=https://back.${SCW_DEFAULT_REGION}.scalewayapp.com" || echo "Front container already exists"
+          scw container container create name=front image=rg.${{ env.SCW_DEFAULT_REGION }}.scw.cloud/${{ env.NAMESPACE }}/front:latest port=80 env="VITE_API_URL=https://back.${{ env.SCW_DEFAULT_REGION }}.scalewayapp.com" || echo "Front container already exists"
           scw container container list name=front -o json | jq -r '.[0].id' | xargs -I {} scw container container deploy {}
