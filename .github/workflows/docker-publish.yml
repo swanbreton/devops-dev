@@ -14,7 +14,7 @@ jobs:
       SCW_SECRET_KEY: ${{ secrets.SCW_SECRET_KEY }}
       SCW_PROJECT_ID: ${{ secrets.SCW_PROJECT_ID }}
       SCW_DEFAULT_REGION: fr-par
-      NAMESPACE: breton-swan
+      NAMESPACE: breton-swan    # Remplace par ton namespace exact sur Scaleway
 
     steps:
       - name: Checkout repository
@@ -43,12 +43,12 @@ jobs:
 
       - name: Install Scaleway CLI
         run: |
-          sudo apt update
-          sudo apt install -y curl gnupg2 software-properties-common
+          sudo apt-get update
+          sudo apt-get install -y curl gnupg2 software-properties-common
           curl -fsSL https://packages.scaleway.com/scaleway.key | sudo tee /etc/apt/trusted.gpg.d/scaleway.asc
           echo "deb https://packages.scaleway.com/debian stable main" | sudo tee /etc/apt/sources.list.d/scaleway.list
-          sudo apt update
-          sudo apt install -y scaleway-cli
+          sudo apt-get update
+          sudo apt-get install -y scaleway-cli
 
       - name: Configure Scaleway CLI
         run: |
