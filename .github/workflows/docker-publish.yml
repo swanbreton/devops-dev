@@ -18,11 +18,15 @@ jobs:
       run: echo "${SCW_SECRET_KEY}" | docker login rg.fr-par.scw.cloud -u _token --password-stdin
 
     - name: Build and Push Front image
+      env:
+        SCW_NAMESPACE: ${{ secrets.SCW_NAMESPACE }}
       run: |
-        docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/front:latest ./devops-dev/front
-        docker push rg.fr-par.scw.cloud/namespace-breton-swan/front:latest
+        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest ./devops-dev/front
+        docker push rg.fr-par.scw.cloud/${SCW_NAMESPACE}/front:latest
 
     - name: Build and Push Back image
+      env:
+        SCW_NAMESPACE: ${{ secrets.SCW_NAMESPACE }}
       run: |
-        docker build -t rg.fr-par.scw.cloud/namespace-breton-swan/back:latest ./devops-dev/back
-        docker push rg.fr-par.scw.cloud/namespace-breton-swan/back:latest
+        docker build -t rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest ./devops-dev/back
+        docker push rg.fr-par.scw.cloud/${SCW_NAMESPACE}/back:latest
